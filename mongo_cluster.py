@@ -7,15 +7,21 @@ from boto.ec2.connection import EC2Connection, EC2ResponseError
 from pymongo import Connection
 
 def main():
+
+	#Load command line args & environment variables
 	n = int(sys.argv[1])
 	keypair_location = sys.argv[2]
-	key = str(environ['AWS_ACCESS_KEY_ID'])
-	secret = str(environ['AWS_SECRET_ACCESS_KEY'])
+	key = environ['AWS_ACCESS_KEY_ID']
+	secret = environ['AWS_SECRET_ACCESS_KEY']
+
+	#Startup scripts for the EC2 instances
 	shard_startup = open('sh/shard_startup.sh', 'r').read()
         config_startup = open('sh/config_startup.sh', 'r').read()
-	num_config = 3 #All mongo clusters must have either 1 or 3 config nodes
 
-	#Cluster must have at least three config nodes and a shard
+	#All mongo clusters must have either 1 or 3 config nodes
+	num_config = 3
+
+	#Cluster must have at least three config nodes, plus some shards
 	assert n>num_config
 
 	#Connect
