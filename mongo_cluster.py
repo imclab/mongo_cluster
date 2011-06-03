@@ -1,4 +1,4 @@
-#Usage: python mongo_cluster.py [number of instances]
+#Usage: python mongo_cluster.py [number of nodes] [gsgkeypair location]
 #AWS key and secret taken from environment variables
 
 import sys, time, commands, os
@@ -8,11 +8,12 @@ from pymongo import Connection
 
 def main():
 	n = int(sys.argv[1])
+	keypair_location = sys.argv[2]
 	key = str(environ['AWS_ACCESS_KEY_ID'])
 	secret = str(environ['AWS_SECRET_ACCESS_KEY'])
 	shard_startup = open('sh/shard_startup.sh', 'r').read()
         config_startup = open('sh/config_startup.sh', 'r').read()
-	num_config = 3
+	num_config = 3 #All mongo clusters must have either 1 or 3 config nodes
 
 	#Cluster must have at least three config nodes and a shard
 	assert n>num_config
@@ -61,7 +62,7 @@ def main():
 		#Set up mongos process
 		print "Setting up mongos"
 		time.sleep(30)	
-		os.system('sh/mongos_config.sh '+config_inst[0].ip_address+' '+config_inst[1].ip_address+' '+config_inst[2].ip_address+' >> /dev/null')
+		os.system('sh/mongos_config.sh '+config_inst[0].ip_address+' '+config_inst[1].ip_address+' '+config_inst[2].ip_address+' '+keypair_location+' >> /dev/null')
 
 		#Configure sharding on cluster
 		print "Configuring shards"
@@ -69,8 +70,7 @@ def main():
 		config_mongo_shards(shard_inst, config_inst[0])
 
 		#Wait for input before closing down the cluster
-		raw_input("Press return to close down cluster...")
-		raw_input()
+		raw_input("Press return to close down cluster...")	
 
 		#Terminate all instances
 		for instance in instances:

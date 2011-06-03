@@ -1,0 +1,2 @@
+Usage: python mongo_cluster.py [number of nodes] [keypair location]
+This script assumes that the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables have been set.
