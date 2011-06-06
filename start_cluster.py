@@ -1,7 +1,7 @@
-#Usage: python run_cluster.py [number of nodes] [gsgkeypair location]
+#Usage: python start_cluster.py [cluster name] [number of nodes] [keypair name] [keypair location]
 #AWS key and secret taken from environment variables
 
-import sys, time, commands, os
+import sys, commands, os
 from py.mongo_cluster import *
 from py.ec2_cluster import *
 from boto.ec2.connection import EC2Connection, EC2ResponseError
@@ -9,8 +9,10 @@ from boto.ec2.connection import EC2Connection, EC2ResponseError
 def main():
 
 	#Load command line args & environment variables
-	n = int(sys.argv[1])
-	keypair_location = sys.argv[2]	
+	cluster_name = sys.argv[1]
+	n = int(sys.argv[2])
+	keypair_name = sys.argv[3]
+	keypair_location = sys.argv[4]	
 	key = os.environ['AWS_ACCESS_KEY_ID']
 	secret = os.environ['AWS_SECRET_ACCESS_KEY']
 
@@ -27,7 +29,7 @@ def main():
 	#Connect
 	try:
                 con = EC2Connection(key, secret)
-	        mongo = con.create_security_group('mongo', 'Group for mongo cluster')
+	        mongo = con.create_security_group(cluster_name, 'Group for'+cluster_name+'mongo cluster')
 	
 		#Start EC2 instances
 		print "Starting up instances"
@@ -36,17 +38,17 @@ def main():
 		shard_reservation = image.run(
 			n-num_config, 
 			n-num_config, 
-			security_groups=['mongo'], 
+			security_groups=[cluster_name], 
 			instance_type='m1.large', 
-			key_name='gsgkeypair', 
+			key_name=keypair_name, 
 			user_data=shard_startup
 		)
 		config_reservation = image.run(
 			num_config, 
 			num_config, 
-			security_groups=['mongo'], 
+			security_groups=[cluster_name], 
 			instance_type='m1.large', 
-			key_name='gsgkeypair', 
+			key_name=keypair_name, 
 			user_data=config_startup
 		)
 		shard_inst = shard_reservation.instances
@@ -70,15 +72,9 @@ def main():
 		#Configure sharding on cluster
 		print "Configuring shards"
 		mongo_config_shards(shard_inst, config_inst[0], mongo)
+		print "Cluster is now up"
 
-		#Wait for input before closing down the cluster
-		raw_input("Press return to close down cluster...")	
-
-		#Terminate all instances
-		print "Terminating all instances"
-		ec2_terminate_instances(instances, mongo)
-
-	except IOError: #EC2ResponseError:
+	except EC2ResponseError:
 		print "Issue making connection to Amazon"
 
 if __name__ == "__main__":
