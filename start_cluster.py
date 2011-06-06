@@ -1,7 +1,7 @@
 #Usage: python start_cluster.py [cluster name] [number of shards] [rep sets per shard] [keypair name] [keypair location]
 #AWS key and secret taken from environment variables
 
-import sys, commands, os, string
+import sys, commands, os, string, itertools
 from py.mongo_cluster import *
 from py.ec2_cluster import *
 from boto.ec2.connection import EC2Connection, EC2ResponseError
@@ -25,7 +25,7 @@ def main():
 	num_config = 3
 
 	#No negative nodes or rep sets
-	assert n>0 && reps>0
+	assert n>0 and reps>0
 
 	#Connect
 	try:
@@ -56,7 +56,7 @@ def main():
 
 			shard_primary = shard_reservation.instances[0]
 			shard_secondaries = shard_reservation.instances[1:reps]
-			shard_inst[shard_primary] = shard_secondary
+			shard_inst[shard_primary] = shard_secondaries
 			shard_names[shard_primary.ip_address] = shard_name
 
 		#Config DBs
@@ -69,7 +69,7 @@ def main():
 			user_data=config_startup)
 
 		config_inst = config_reservation.instances
-		instances = shard_inst.keys() + shard_inst.values() + config_inst
+		instances = shard_inst.keys() + list(itertools.chain(*shard_inst.values())) + config_inst
 
 		#Wait until all instances have been started
 		ec2_wait_status('running', instances)
@@ -94,7 +94,7 @@ def main():
 		mongo_config_shards(shard_inst.keys(), config_inst[0], mongo)
 		print "Cluster is now up"
 
-	except EC2ResponseError:
+	except IOError:#EC2ResponseError:
 		print "Issue making connection to Amazon"
 
 if __name__ == "__main__":

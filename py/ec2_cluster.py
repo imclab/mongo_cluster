@@ -28,13 +28,11 @@ def ec2_config_security(mongo, instances):
 	mongo.authorize('tcp', 22, 22, '0.0.0.0/0')
 
 #Print EC2 information
-def ec2_print_info(shard_map, config_inst):
-        print "\nShards:"
-	set_number = 0
+def ec2_print_info(shard_inst, config_inst):
+        print "\nShards:"	
 
         for primary in shard_inst.keys():
-		set_number = set_number + 1
-		print "    Replica set "+set_number+":"
+		print "Replica set "+str(shard_inst.keys().index(primary))+":"
         	print "    "+primary.dns_name+": "+primary.ip_address+" <<<"		
 
 		for secondary in shard_inst[primary]:

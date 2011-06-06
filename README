@@ -1,2 +1,5 @@
-Usage: python mongo_cluster.py [number of nodes] [keypair location]
+Usage:
+python start_cluster.py [cluster name] [number of shards] [repl sets per shard] [keypair name] [keypair location]
+python stop_cluster.py [cluster name]
+
 This script assumes that the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables have been set.
