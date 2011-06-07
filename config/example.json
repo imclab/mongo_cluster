@@ -1,0 +1,50 @@
+{
+	"keypair" :
+	{
+		"name" : "mongokey",
+		"location" : "../ec2/mongokeypair"
+	},
+
+	"cluster" :
+	{
+		"name" : "testing_mongo",
+		"image" : "ami-68ad5201",
+		"size" : "m1.large",
+		"shards" : 1,
+		"replicasPerShard" : 2	
+	},
+
+	"replication" :
+	{
+		"master" :
+		{
+                        "arbiterOnly" : false,
+                        "votes" : 1,
+                        "priority" : 1.0,
+                        "hidden" : false,
+                        "slaveDelay" : 0,
+                	"buildIndexes" : true
+		},
+	
+		"slaves" :
+		[
+
+			{
+				"arbiterOnly" : false,
+				"votes" : 1,
+				"priority" : 0,
+				"hidden" : false,
+				"slaveDelay" : 0,
+				"buildIndexes" : true
+			},
+        	       	{
+                        	"arbiterOnly" : false,
+	               	        "votes" : 1,
+        	               	"priority" : 0,
+	               	        "hidden" : false,
+        	               	"slaveDelay" : 3600,
+	                        "buildIndexes" : false
+        	       	}
+		]
+	}
+}
