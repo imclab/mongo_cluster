@@ -30,7 +30,7 @@ def main():
 	#Connect
 	try:
                 con = EC2Connection(key, secret)
-	        mongo = con.create_security_group(cluster_name, 'Group for'+cluster_name+'mongo cluster')
+	        mongo_group = con.create_security_group(cluster_name, 'Group for'+cluster_name+'mongo cluster')
 	
 		#Start EC2 instances
 		print "Starting up instances"
@@ -54,10 +54,11 @@ def main():
 				key_name=keypair_name, 
 				user_data=shard_startup_sub)
 
+	                ec2_wait_status('running', shard_reservation.instances)
 			shard_primary = shard_reservation.instances[0]
 			shard_secondaries = shard_reservation.instances[1:reps]
 			shard_inst[shard_primary] = shard_secondaries
-			shard_names[shard_primary.ip_address] = shard_name
+			shard_names[str(shard_primary.ip_address)] = shard_name
 
 		#Config DBs
 		config_reservation = image.run(
@@ -70,20 +71,18 @@ def main():
 
 		config_inst = config_reservation.instances
 		instances = shard_inst.keys() + list(itertools.chain(*shard_inst.values())) + config_inst
-
-		#Wait until all instances have been started
-		ec2_wait_status('running', instances)
+		ec2_wait_status('running', config_inst)
 
 		#Configure security group
 		print "Configuring security settings"	
-		ec2_config_security(mongo, instances)
-
-		#Print instance adresses
-		ec2_print_info(shard_inst, config_inst)
+		ec2_config_security(mongo_group, instances)
 
 		#Set up mongos process
 		print "Setting up mongos"	
-		os.system('sh/mongos_config.sh '+config_inst[0].ip_address+' '+config_inst[1].ip_address+' '+config_inst[2].ip_address+' '+keypair_location+' >> /dev/null')
+		mongo_start_service(config_inst[0].ip_address, config_inst[1].ip_address, config_inst[2].ip_address, keypair_location)
+
+	        #Temporarily allow access to port 27106 (monogs) from current real ip
+        	ec2_allow_local(mongo_group)
 
 		#Configure replication sets
 		print "Configuring replication sets"
@@ -91,7 +90,13 @@ def main():
 
 		#Configure sharding on cluster
 		print "Configuring shards"
-		mongo_config_shards(shard_inst.keys(), config_inst[0], mongo)
+		mongo_config_shards(shard_inst.keys(), config_inst[0], mongo_group)
+
+	        #Revoke temporarily granted access
+	       	ec2_deny_local(mongo_group)
+
+                #Print instance adresses
+                ec2_print_info(shard_inst, config_inst)
 		print "Cluster is now up"
 
 	except IOError:#EC2ResponseError:
