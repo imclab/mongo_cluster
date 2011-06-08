@@ -8,4 +8,4 @@ sudo apt-get -y install mongodb-10gen
 sudo mkdir -p /data/configdb
 sudo mkdir -p /data/db
 sudo chmod -R 777 /data
-sudo nohup `which mongod` --configsvr --port 27019 &
+sudo nohup `which mongod` --configsvr --port 27019 $ARGS &

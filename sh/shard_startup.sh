@@ -7,4 +7,4 @@ sudo apt-get update
 sudo apt-get -y install mongodb-10gen
 sudo mkdir -p /data/db
 sudo chmod -R 777 /data
-sudo nohup `which mongod` --rest --shardsvr --replSet $SETNAME &
+sudo nohup `which mongod` --rest --shardsvr --replSet $SETNAME $ARGS &
