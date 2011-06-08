@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #Usage: python stop_cluster.py [cluster name]
 #AWS key and secret taken from environment variables
 

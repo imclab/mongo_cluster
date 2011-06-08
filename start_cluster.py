@@ -1,4 +1,5 @@
-#Usage: python start_cluster.py [config file]
+#!/usr/bin/env python
+#Usage: python start_cluster.py [cluster name] [config file]
 #AWS key and secret taken from environment variables
 
 import sys, commands, os, string, itertools, json
@@ -9,14 +10,9 @@ from boto.ec2.connection import EC2Connection, EC2ResponseError
 def main():
 
 	#Load command line args & environment variables
-	config_json = open(sys.argv[1]).read()
+	cluster_name = sys.argv[1]
+	config_json = open(sys.argv[2]).read()
 	config = json.loads(config_json)
-
-	#cluster_name = sys.argv[1]
-	#n = int(sys.argv[2])
-	#config['cluster']['replicasPerShard'] = int(sys.argv[3])
-	#config['keypair']['name'] = sys.argv[4]
-	#config['keypair']['location'] = sys.argv[5]	
 	key = os.environ['AWS_ACCESS_KEY_ID']
 	secret = os.environ['AWS_SECRET_ACCESS_KEY']
 
@@ -33,7 +29,7 @@ def main():
 	#Connect
 	try:
                 con = EC2Connection(key, secret)
-	        mongo_group = con.create_security_group(config['cluster']['name'], 'Group for'+config['cluster']['name']+'mongo cluster')
+	        mongo_group = con.create_security_group(cluster_name, 'Group for'+cluster_name+'mongo cluster')
 	
 		#Start EC2 instances
 		con = EC2Connection(key, secret)
@@ -52,7 +48,7 @@ def main():
 			shard_reservation = image.run(
 				config['cluster']['replicasPerShard'], 
 				config['cluster']['replicasPerShard'], 
-				security_groups=[config['cluster']['name']], 
+				security_groups=[cluster_name], 
 				instance_type=config['cluster']['size'], 
 				key_name=config['keypair']['name'], 
 				user_data=shard_startup_sub)
@@ -68,7 +64,7 @@ def main():
 		config_reservation = image.run(
 			num_config, 
 			num_config, 
-			security_groups=[config['cluster']['name']], 
+			security_groups=[cluster_name], 
 			instance_type=config['cluster']['size'], 
 			key_name=config['keypair']['name'], 
 			user_data=config_startup)
@@ -90,7 +86,9 @@ def main():
 
 		#Configure replication sets
 		print "Configuring replication sets"
-		mongo_config_repl(shard_inst, shard_names)
+		mongo_config_repl(shard_inst, shard_names, config['replication']['master'], config['replication']['slaves'])
+
+		ec2_print_info(shard_inst, config_inst)
 
 		#Configure sharding on cluster
 		print "Configuring shards"

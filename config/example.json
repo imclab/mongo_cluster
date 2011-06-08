@@ -11,7 +11,7 @@
 		"image" : "ami-68ad5201",
 		"size" : "m1.large",
 		"shards" : 1,
-		"replicasPerShard" : 2	
+		"replicasPerShard" : 3
 	},
 
 	"replication" :
@@ -42,8 +42,8 @@
 	               	        "votes" : 1,
         	               	"priority" : 0,
 	               	        "hidden" : false,
-        	               	"slaveDelay" : 3600,
-	                        "buildIndexes" : false
+        	               	"slaveDelay" : 0,
+	                        "buildIndexes" : true
         	       	}
 		]
 	}
