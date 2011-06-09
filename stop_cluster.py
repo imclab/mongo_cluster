@@ -24,7 +24,11 @@ def main():
                 mongo_group = group
 
         try:        
-            instances = mongo_group.instances()
+            ec2_instances = mongo_group.instances()
+            instances = []
+
+            for ec2_instance in ec2_instances:
+                instances.append({'ec2': ec2_instance})
 
             #Terminate all instances
             print "Terminating all instances"

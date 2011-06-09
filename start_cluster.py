@@ -2,10 +2,11 @@
 #Usage: python start_cluster.py [cluster name] [config file]
 #AWS key and secret taken from environment variables
 
-import sys, commands, os, string, itertools, json
+import sys, commands, os, itertools, json
+from boto.ec2.connection import EC2Connection, EC2ResponseError
 from py.mongo_util import *
 from py.ec2_util import *
-from boto.ec2.connection import EC2Connection, EC2ResponseError
+from py.launch import * 
 
 def main():
 
@@ -20,9 +21,9 @@ def main():
     shard_startup = open('sh/shard_startup.sh', 'r').read()
     con_startup = open('sh/config_startup.sh', 'r').read()
 
-    #No negative nodes or rep sets
-    assert len(config['cluster']['shards'])>0
-    assert len(config['cluster']['config']) in [1, 3]
+    #Must have at least one shard, and must have one or three config nodes
+    assert len(config['cluster']['shards']) > 0
+    assert len(config['cluster']['configs']) in [1, 3]
 
     #Connect
     try:
@@ -35,36 +36,36 @@ def main():
         image = con.get_all_images(image_ids=[config['cluster']['image']])[0] #Ubuntu 11.04 Natty 64-bit Server
 
         print "Starting up shard instances"
-        shard_map = launch_shards(config, cluster_name, shard_startup)
-        shard_inst = shard_inst.keys() + list(itertools.chain(*shard_inst.values()))
+        shard_map = launch_shards(config, cluster_name, shard_startup, image)
+        shard_inst = list(itertools.chain(*shard_map.values()))
         ec2_wait_status('running', shard_inst)
 
         print "Starting up config instances"
-        config_inst = launch_configs(config, cluster_name, con_startup)
+        config_inst = launch_configs(config, cluster_name, con_startup, image)
         ec2_wait_status('running', config_inst)
 
         #Gather up all instances
         instances = shard_inst + config_inst
 
         #Configure security groups, then ssh into the mongos instances and start mongos
-        print "Configuring security settings"    
+        print "Configuring security settings"
         ec2_config_security(mongo_group, instances)
 
         print "Setting up mongos"
-        mongo_start_service(shard_inst, config_inst, config['keypair']['location'])
+        mongos_inst = mongo_start_service(shard_inst, config_inst, config['keypair']['location']) 
 
         #Perform mongo driver-based configurations
         ec2_allow_local(mongo_group)
 
         print "Configuring replication sets"
-        mongo_try(retries, mongo_config_repl, shard_inst, shard_names, config['replication']['master'], config['replication']['slaves']) 
+        mongo_try(retries, mongo_config_repl, shard_map) 
 
         print "Configuring shards"
-        mongo_try(retries, mongo_config_shards, shard_inst, shard_names, config_inst[0], mongo_group)
+        mongo_try(retries, mongo_config_shards, shard_map, mongos_inst)
         ec2_deny_local(mongo_group)
 
         #Print cluster information
-        ec2_print_info(shard_inst, config_inst)
+        ec2_print_info(shard_map, config_inst, mongos_inst)
         print "Cluster is now up"
 
     except IOError: #EC2ResponseError:

@@ -4,54 +4,50 @@
 		"name" : "mongokey",
 		"location" : "../ec2/mongokeypair"
 	},
-
 	"cluster" :
 	{
                 "image" : "ami-68ad5201",
-                "type" : "m1.large"
+                "type" : "m1.large",
                 "configs" :
                 [
                         { 
-                                "args" : "--quiet" 
-                                "mongos" : "--chunkSize 100"
-                        },
-                        {
-                                "args" : "--quiet"
+                                "args" : "--quiet",
                                 "mongos" : true
-                        },
-                        {}
-                ]
+                        }
+                ],
                 "shards" :
                 [
                         {
-                                "name" : "set0",
+                                "name" : "firstset",
                                 "master" :
                                 {
-                                        "type" : "m1.xlarge",
-                                        "args" : "--fork --noprealloc",
+                                        "type" : "m1.large",
                                         "mongos" : true
                                 },
                                 "slaves" :
                                 [
                                         { 
-                                                "type" : "m1.xlarge",
+                                                "type" : "m1.large",
                                                 "args" : "--quiet",
                                                 "config" :
-                                                { 
+                                                {
+                                                        "arbiterOnly" : false,
                                                         "votes" : 1,
                                                         "priority" : 0,
-                                                        "slaveDelay" : 3600
-                                                }
+                                                        "hidden" : false,
+                                                        "slaveDelay" : 0,
+                                                        "buildIndexes" : true
+                                                } 
                                         },
                                         {}
                                 ]
                         },
                         {
-                                "name" : "set1",
+                                "name" : "secondset",
                                 "master" : {},
                                 "slaves" :
                                 [
-                                        {}, {}, {}
+                                        {}, {}
                                 ]
                         }
                 ]
