@@ -1,0 +1,82 @@
+{
+	"keypair" :
+	{
+		"name" : "mongokey",
+		"location" : "../ec2/mongokeypair"
+	},
+
+        "machines" :
+        [
+                {
+                        "name" : "machine_one",
+                        "image" : "ami-68ad5201",
+                        "instance_type" : "m1.large"
+                },
+                {
+                        "name" : "machine_two",
+                        "image" : "ami-68ad5201",
+                        "instance_type" : "m1.large"
+                },
+                {
+                        "name" : "machine_three",
+                        "image" : "ami-68ad5201",
+                        "instance_type" : "m1.large"
+                }
+        ],
+
+	"cluster" :
+	{
+                "configs" :
+                [
+                        { 
+                                "machine" : "machine_one",
+                                "dbpath": "/data/db/config"
+                        }
+                ],
+
+                "routers" :
+                [
+                        {
+                                "machine" : "machine_one"
+                        },
+                        {
+                                "machine" : "machine_two"
+                        },
+                        {
+                                "machine" : "machine_three"
+                        }
+                ],
+
+                "shards" :
+                [
+                        {
+                                "name" : "firstset",
+                                "master" :
+                                {
+                                        "machine" : "machine_one",
+                                        "dbpath" : "/data/db/master"
+                                },
+                                "slaves" :
+                                [
+                                        { 
+                                                "machine" : "machine_two",
+                                                "config" :
+                                                {
+                                                        "arbiterOnly" : false,
+                                                        "votes" : 1,
+                                                        "priority" : 0,
+                                                        "hidden" : false,
+                                                        "slaveDelay" : 0,
+                                                        "buildIndexes" : true
+                                                },
+                                                "dbpath" : "/data/db/slave1"
+                                        },
+                                        {
+                                                "machine" : "machine_three",
+                                                "dbpath" : "/data/db/slave2"
+                                        }
+                                ]
+                        } 
+                ]
+	}
+}

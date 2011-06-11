@@ -2,11 +2,12 @@
 #Usage: python start_cluster.py [cluster name] [config file]
 #AWS key and secret taken from environment variables
 
-import sys, commands, os, itertools, json
+import sys, commands, os, itertools, json, time
 from boto.ec2.connection import EC2Connection, EC2ResponseError
-from py.mongo_util import *
-from py.ec2_util import *
-from py.launch import * 
+from py.mongo_setup import *
+from py.ec2_setup import *
+from py.remote import *
+from py.util import * 
 
 def main():
 
@@ -18,41 +19,51 @@ def main():
     secret = os.environ['AWS_SECRET_ACCESS_KEY']
 
     #Startup scripts for the EC2 instances
-    shard_startup = open('sh/shard_startup.sh', 'r').read()
-    con_startup = open('sh/config_startup.sh', 'r').read()
+    startup_script = open('sh/startup_script.sh', 'r').read()
 
-    #Must have at least one shard, and must have one or three config nodes
-    assert len(config['cluster']['shards']) > 0
+    #Must have at least one shard, at least one router, and one or three config nodes
+    assert len(config['cluster']['shards'])  > 0
+    assert len(config['cluster']['routers']) > 0
     assert len(config['cluster']['configs']) in [1, 3]
 
     #Connect
     try:
-        con = EC2Connection(key, secret)
-        mongo_group = con.create_security_group(cluster_name, 'Group for'+cluster_name+'mongo cluster')
+        connection = EC2Connection(key, secret)
+        mongo_group = connection.create_security_group(cluster_name, 'Group for '+cluster_name+' mongo cluster')
         retries = 5 #when a connection fails, retry up to retries times
     
         #Start EC2 instances
-        con = EC2Connection(key, secret)
-        image = con.get_all_images(image_ids=[config['cluster']['image']])[0] #Ubuntu 11.04 Natty 64-bit Server
+        print "Starting up EC2 instances"
+        ec2_instances = ec2_launch(config['machines'], cluster_name, config['keypair']['name'], connection, startup_script)
 
-        print "Starting up shard instances"
-        shard_map = launch_shards(config, cluster_name, shard_startup, image)
+        #Create Mongo-EC2 dicts
+        config_inst = make_dict_pairs(config['cluster']['configs'], ec2_instances)
+        router_inst = make_dict_pairs(config['cluster']['routers'], ec2_instances)
+        shard_map = make_shard_map(config['cluster']['shards'], ec2_instances)
         shard_inst = list(itertools.chain(*shard_map.values()))
-        ec2_wait_status('running', shard_inst)
-
-        print "Starting up config instances"
-        config_inst = launch_configs(config, cluster_name, con_startup, image)
-        ec2_wait_status('running', config_inst)
 
         #Gather up all instances
-        instances = shard_inst + config_inst
+        instances = shard_inst + config_inst + router_inst
+        ec2_wait_status('running', ec2_instances.values())
 
-        #Configure security groups, then ssh into the mongos instances and start mongos
+        #Set up port and ip rules for the cluster's EC2 security group
         print "Configuring security settings"
-        ec2_config_security(mongo_group, instances)
+        ec2_config_security(mongo_group, ec2_instances.values())
 
-        print "Setting up mongos"
-        mongos_inst = mongo_start_service(shard_inst, config_inst, config['keypair']['location']) 
+        ec2_print_info(shard_map, config_inst, router_inst)
+
+        time.sleep(60)
+
+        #Start up the mongodb routers, config dbs, and shard dbs
+        print "Starting up config dbs"
+        remote_start_configs(config_inst, config['keypair']['location'])
+        time.sleep(20)
+        print "Starting up shard dbs"
+        remote_start_shards(shard_map, config['keypair']['location'])
+        time.sleep(20)
+        print "Starting up routers"
+        remote_start_routers(router_inst, config_inst, config['keypair']['location']) 
+        time.sleep(20)
 
         #Perform mongo driver-based configurations
         ec2_allow_local(mongo_group)
@@ -61,11 +72,11 @@ def main():
         mongo_try(retries, mongo_config_repl, shard_map) 
 
         print "Configuring shards"
-        mongo_try(retries, mongo_config_shards, shard_map, mongos_inst)
+        mongo_try(retries, mongo_config_shards, shard_map, router_inst)
         ec2_deny_local(mongo_group)
 
         #Print cluster information
-        ec2_print_info(shard_map, config_inst, mongos_inst)
+        ec2_print_info(shard_map, config_inst, router_inst)
         print "Cluster is now up"
 
     except IOError: #EC2ResponseError:

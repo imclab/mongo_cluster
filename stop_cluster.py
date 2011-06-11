@@ -3,7 +3,7 @@
 #AWS key and secret taken from environment variables
 
 import sys, os
-from py.ec2_util import *
+from py.ec2_setup import *
 from boto.ec2.connection import EC2Connection, EC2ResponseError
 
 def main():
@@ -25,15 +25,11 @@ def main():
 
         try:        
             ec2_instances = mongo_group.instances()
-            instances = []
-
-            for ec2_instance in ec2_instances:
-                instances.append({'ec2': ec2_instance})
 
             #Terminate all instances
             print "Terminating all instances"
-            ec2_terminate_instances(instances, mongo_group)
-            ec2_wait_status('terminated', instances)
+            ec2_terminate_instances(ec2_instances, mongo_group)
+            ec2_wait_status('terminated', ec2_instances)
 
         except NameError:
             print "No cluster with name \""+cluster_name+"\" exists." 
