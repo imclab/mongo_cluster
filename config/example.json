@@ -30,6 +30,7 @@
                 [
                         { 
                                 "machine" : "machine_one",
+                                "port" : 3000,
                                 "dbpath": "/data/db/config"
                         }
                 ],
@@ -37,13 +38,16 @@
                 "routers" :
                 [
                         {
-                                "machine" : "machine_one"
+                                "machine" : "machine_one",
+                                "port" : 3001
                         },
                         {
-                                "machine" : "machine_two"
+                                "machine" : "machine_two",
+                                "port" : 3000
                         },
                         {
-                                "machine" : "machine_three"
+                                "machine" : "machine_three",
+                                "port" : 3000
                         }
                 ],
 
@@ -54,12 +58,13 @@
                                 "master" :
                                 {
                                         "machine" : "machine_one",
-                                        "dbpath" : "/data/db/master"
+                                        "port" : 3002
                                 },
                                 "slaves" :
                                 [
                                         { 
                                                 "machine" : "machine_two",
+                                                "port" : 3001,
                                                 "config" :
                                                 {
                                                         "arbiterOnly" : false,
@@ -73,6 +78,7 @@
                                         },
                                         {
                                                 "machine" : "machine_three",
+                                                "port" : 3001,
                                                 "dbpath" : "/data/db/slave2"
                                         }
                                 ]

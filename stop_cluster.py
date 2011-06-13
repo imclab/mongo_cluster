@@ -3,7 +3,7 @@
 #AWS key and secret taken from environment variables
 
 import sys, os
-from py.ec2_setup import *
+from cluster.ec2_setup import *
 from boto.ec2.connection import EC2Connection, EC2ResponseError
 
 def main():

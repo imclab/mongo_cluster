@@ -1,21 +1,24 @@
 from pymongo import Connection
 from pymongo.errors import AutoReconnect
-from py.util import safe_get
-import os, time, sys
+from cluster.util import safe_get
+import time, sys
 
 #Connect with the mongos server and set up cluster
 def mongo_config_shards(shard_map, mongos_inst):
 
     for name in shard_map.keys():
         primary_ip = shard_map[name][0]['ec2'].ip_address
-        servers = primary_ip+':27018'
+        primary_port = str(shard_map[name][0]['mongo']['port'])
+        servers = primary_ip+':'+primary_port
 
         for secondary in shard_map[name][1:]:
-            servers = servers+','+str(secondary['ec2'].ip_address)+':27018'
+            secondary_ip = secondary['ec2'].ip_address
+            secondary_port = str(secondary['mongo']['port'])
+            servers = servers+','+secondary_ip+':'+secondary_port
 
         #Connect to a mongos, tell it where the shards are 
         mongos = mongos_inst[0]
-        mongo_con = Connection(mongos['ec2'].ip_address, 27016)
+        mongo_con = Connection(mongos['ec2'].ip_address, mongos['mongo']['port'])
         db = mongo_con['admin']
         db.command({'addshard': name+'/'+servers})
 
@@ -24,19 +27,24 @@ def mongo_config_repl(shard_map):
 
     for name in shard_map.keys():
         primary_ip = shard_map[name][0]['ec2'].ip_address
-        mongo_con = Connection(primary_ip, 27018, slave_okay=True)
+        primary_port = shard_map[name][0]['mongo']['port']
+        mongo_con = Connection(primary_ip, primary_port, slave_okay=True)
         db = mongo_con['admin']
+
+        #Create JSON configuration object
         config = {'_id': name}
         config_master = safe_get(shard_map[name][0]['mongo'], 'config', {})
         config_master['_id'] = 0
-        config_master['host'] = primary_ip+':27018'
+        config_master['host'] = primary_ip+':'+str(primary_port)
         members_list = [config_master]
 
         #Add secondaries to configuration members list
         for secondary in shard_map[name][1:]:
+            secondary_ip = secondary['ec2'].ip_address
+            secondary_port = str(secondary['mongo']['port'])
             config_slave = safe_get(secondary['mongo'], 'config', {})
             config_slave['_id'] = shard_map[name].index(secondary)
-            config_slave['host'] = secondary['ec2'].ip_address+':27018' 
+            config_slave['host'] = secondary_ip+':'+secondary_port 
             members_list.append(config_slave)
 
         config['members'] = members_list

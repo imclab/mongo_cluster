@@ -4,10 +4,10 @@
 
 import sys, commands, os, itertools, json, time
 from boto.ec2.connection import EC2Connection, EC2ResponseError
-from py.mongo_setup import *
-from py.ec2_setup import *
-from py.remote import *
-from py.util import * 
+from cluster.mongo_setup import *
+from cluster.ec2_setup import *
+from cluster.remote import *
+from cluster.util import * 
 
 def main():
 
@@ -19,7 +19,7 @@ def main():
     secret = os.environ['AWS_SECRET_ACCESS_KEY']
 
     #Startup scripts for the EC2 instances
-    startup_script = open('sh/startup_script.sh', 'r').read()
+    startup_script = open('config/startup_script.sh', 'r').read()
 
     #Must have at least one shard, at least one router, and one or three config nodes
     assert len(config['cluster']['shards'])  > 0
@@ -48,9 +48,7 @@ def main():
 
         #Set up port and ip rules for the cluster's EC2 security group
         print "Configuring security settings"
-        ec2_config_security(mongo_group, ec2_instances.values())
-
-        ec2_print_info(shard_map, config_inst, router_inst)
+        ec2_config_security(mongo_group, ec2_instances.values()) 
 
         time.sleep(60)
 
@@ -79,7 +77,7 @@ def main():
         ec2_print_info(shard_map, config_inst, router_inst)
         print "Cluster is now up"
 
-    except IOError: #EC2ResponseError:
+    except EC2ResponseError:
         print "Issue making connection to Amazon"
 
 if __name__ == "__main__":
