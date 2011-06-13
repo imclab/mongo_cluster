@@ -1,5 +1,5 @@
 This program reads a JSON description of a MongoDB cluster and instantiates it on Amazon EC2 servers. The JSON
-configuration file supports the full description of both the EC2 hardware to be used and the Mongo cluster
+configuration file supports the full description of both the EC2 instances to be used and the Mongo cluster
 architecture. For an example configuration file, see config/example.json.
 
 To start and stop clusters, use:
