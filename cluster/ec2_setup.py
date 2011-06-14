@@ -79,32 +79,29 @@ def ec2_deny_local(mongo_group):
 #Print EC2 information
 def ec2_print_info(shard_map, config_inst, router_inst):
 
-    dns_chars = 35
-    ip_chars = 30
-    port_chars = 10
+    B1  = "\033[1m"
+    B2 = "\033[0m"
+    column = 18
     print ""    
 
     for name in shard_map.keys():
-        print "Replica set \""+name+"\":"
+        print B1+"Replica set \""+name+"\":"+B2
 
-        for secondary in shard_map[name]:
-            print secondary['ec2'].dns_name.rjust(dns_chars),
-            print secondary['ec2'].ip_address.rjust(ip_chars),
-            print str(secondary['mongo']['port'])
+        for secondary in shard_map[name]: 
+            print secondary['ec2'].ip_address.ljust(column),
+            print str(secondary['mongo']['port']).ljust(column)
 
-    print "\nConfig DBs:"
+    print B1+"\nConfig DBs:"+B2
 
     for config in config_inst:
-        print config['ec2'].dns_name.rjust(dns_chars),
-        print config['ec2'].ip_address.rjust(ip_chars),
-        print str(config['mongo']['port'])
+        print config['ec2'].ip_address.ljust(column),
+        print str(config['mongo']['port']).ljust(column)
 
-    print "\nMongos Processes:"
+    print B1+"\nRouters:"+B2
     
     for mongos in router_inst:
-        print mongos['ec2'].dns_name.rjust(dns_chars),
-        print mongos['ec2'].ip_address.rjust(ip_chars),
-        print str(mongos['mongo']['port'])
+        print mongos['ec2'].ip_address.ljust(column),
+        print str(mongos['mongo']['port']).ljust(column)
 
     print ""
 
