@@ -36,3 +36,12 @@ def make_shard_map(shard_configs, ec2_instances):
         shard_map[config['name']] = dict_pairs
         
     return shard_map
+
+def twirl():
+    #chars = ['|', '/', '-', '\\']
+    chars = [':)', ':|', ':(', ':O', ':P']
+
+    n = 0
+    while 1:
+        n = (n+1)%len(chars)
+        yield chars[n]

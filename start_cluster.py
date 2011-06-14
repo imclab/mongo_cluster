@@ -48,7 +48,7 @@ def main():
 
         #Set up port and ip rules for the cluster's EC2 security group
         print "Configuring security settings"
-        ec2_config_security(mongo_group, ec2_instances.values()) 
+        ec2_config_security(mongo_group, instances) 
 
         time.sleep(60)
 
@@ -77,7 +77,7 @@ def main():
         ec2_print_info(shard_map, config_inst, router_inst)
         print "Cluster is now up"
 
-    except EC2ResponseError:
+    except IOError: #EC2ResponseError:
         print "Issue making connection to Amazon"
 
 if __name__ == "__main__":

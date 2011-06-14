@@ -1,5 +1,5 @@
 from pymongo import Connection
-from pymongo.errors import AutoReconnect
+from pymongo.errors import AutoReconnect, OperationFailure
 from cluster.util import safe_get
 import time, sys
 
@@ -63,7 +63,7 @@ def mongo_try(max_tries, function, *parameters):
             function(*parameters)
             connected = True
 
-        except AutoReconnect:
+        except (AutoReconnect, OperationFailure):
 
             if (tries==max_tries):
                 print "Could not make connecton. Aborting cluster setup."
